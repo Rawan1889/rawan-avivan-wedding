@@ -7,6 +7,7 @@ export default defineConfig({
     target: 'esnext',
     outDir: 'dist',
     assetsInlineLimit: 0,
+    chunkSizeWarningLimit: 700,
   },
   server: {
     port: 5180,

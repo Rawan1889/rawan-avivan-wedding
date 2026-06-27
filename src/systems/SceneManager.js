@@ -1,63 +1,57 @@
 import * as THREE from 'three';
 
 /**
- * Central hub for the Three.js scene.
- * Owns update(), resize(), and render() — no other module calls these.
- * Systems register themselves; SceneManager drives their lifecycle.
+ * Owns the Three.js scene and orchestrates all registered systems.
+ * Every system must be registered here — no external update() calls.
+ *
+ * Responsibilities: update(), resize(), render().
  */
 export class SceneManager {
   constructor() {
     this.scene = new THREE.Scene();
 
-    /** @type {Array<{update?: (delta: number) => void, onResize?: () => void}>} */
+    /** @type {Array<{update?: (d:number)=>void, onResize?: ()=>void, dispose?: ()=>void}>} */
     this._systems = [];
   }
 
   /**
-   * Registers a system to receive update and resize calls.
+   * Registers a system to receive lifecycle calls.
    * @param {object} system
    */
   register(system) {
     this._systems.push(system);
-  }
-
-  /**
-   * Adds an Object3D directly to the scene.
-   * @param {THREE.Object3D} object
-   */
-  add(object) {
-    this.scene.add(object);
+    return this;
   }
 
   /** @param {THREE.Object3D} object */
-  remove(object) {
-    this.scene.remove(object);
-  }
+  add(object) { this.scene.add(object); }
+
+  /** @param {THREE.Object3D} object */
+  remove(object) { this.scene.remove(object); }
 
   /** @returns {THREE.Scene} */
-  get() {
-    return this.scene;
-  }
+  get() { return this.scene; }
 
   /** @param {number} delta - seconds since last frame */
   update(delta) {
-    for (const sys of this._systems) {
-      sys.update?.(delta);
-    }
+    for (const s of this._systems) s.update?.(delta);
   }
 
-  /** Propagates viewport resize to all registered systems. */
+  /** Propagate resize to all registered systems. */
   resize() {
-    for (const sys of this._systems) {
-      sys.onResize?.();
-    }
+    for (const s of this._systems) s.onResize?.();
   }
 
   /**
    * @param {THREE.WebGLRenderer} renderer
-   * @param {THREE.Camera} camera
+   * @param {THREE.Camera}        camera
    */
   render(renderer, camera) {
     renderer.render(this.scene, camera);
+  }
+
+  dispose() {
+    for (const s of this._systems) s.dispose?.();
+    this._systems.length = 0;
   }
 }

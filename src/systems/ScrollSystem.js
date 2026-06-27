@@ -1,18 +1,44 @@
+import Lenis from 'lenis';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
 /**
- * Wraps Lenis smooth scroll and exposes a normalised 0→1 progress value.
- * Sprint 2: stub — camera drift is automatic this sprint.
- * Sprint 3+: drives camera walk-through and GSAP timeline scrubbing.
+ * Smooth scroll — Lenis + GSAP ScrollTrigger.
+ * Exposes `progress` (0→1) for camera and GSAP animations.
+ * Lenis is driven from the main Three.js RAF via update() — single loop.
  */
 export class ScrollSystem {
   constructor() {
-    /** @type {number} 0 at top, 1 at bottom of scroll track */
+    /** @type {number} Normalised scroll position 0 (top) → 1 (bottom) */
     this.progress = 0;
+    /** @type {Lenis | null} */
+    this._lenis   = null;
   }
 
-  init() {}
+  init() {
+    gsap.registerPlugin(ScrollTrigger);
 
-  /** @param {number} _delta */
-  update(_delta) {}
+    this._lenis = new Lenis({
+      duration:    2.0,
+      easing:      (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      touchMultiplier: 2.0,
+    });
 
-  dispose() {}
+    // Keep ScrollTrigger in sync with Lenis
+    this._lenis.on('scroll', ScrollTrigger.update);
+
+    this._lenis.on('scroll', ({ progress }) => {
+      this.progress = progress;
+    });
+  }
+
+  /** Must be called every animation frame. Drives Lenis from Three.js RAF. */
+  update(_delta) {
+    this._lenis?.raf(performance.now());
+  }
+
+  dispose() {
+    this._lenis?.destroy();
+  }
 }

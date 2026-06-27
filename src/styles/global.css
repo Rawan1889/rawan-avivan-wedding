@@ -6,16 +6,60 @@
   box-sizing: border-box;
 }
 
-html,
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
 body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #ffffff;
+  background: #0c0b09;
+  overflow-x: hidden;
 }
 
 #canvas {
-  display: block;
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
+}
+
+/* Scroll driver — height creates the scroll range; invisible. */
+#scroll-track {
+  height: 500vh;
+  pointer-events: none;
+  position: relative;
+  z-index: -1;
+}
+
+/* Opening black overlay — GSAP fades this out. */
+#intro {
+  position: fixed;
+  inset: 0;
+  background: #0c0b09;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* Debug panel — visible only when ?debug is in URL. */
+#debug-panel {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  color: #f0ece4;
+  background: rgba(12, 11, 9, 0.65);
+  backdrop-filter: blur(6px);
+  padding: 6px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  z-index: 90;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #intro {
+    display: none;
+  }
 }

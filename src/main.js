@@ -1,84 +1,110 @@
 import * as THREE from 'three';
-import { SceneManager }    from './systems/SceneManager.js';
-import { CameraSystem }    from './systems/CameraSystem.js';
-import { LightingSystem }  from './systems/LightingSystem.js';
+import gsap from 'gsap';
+
+import { SceneManager }     from './systems/SceneManager.js';
+import { RendererSystem }   from './systems/RendererSystem.js';
+import { CameraSystem }     from './systems/CameraSystem.js';
+import { LightingSystem }   from './systems/LightingSystem.js';
 import { EnvironmentSystem } from './systems/EnvironmentSystem.js';
-import { ScrollSystem }    from './systems/ScrollSystem.js';
-import { FlowerSystem }    from './systems/FlowerSystem.js';
-import { ParticleSystem }  from './systems/ParticleSystem.js';
-import { AudioSystem }     from './systems/AudioSystem.js';
-import { DawnGate }        from './scenes/DawnGate.js';
+import { ScrollSystem }     from './systems/ScrollSystem.js';
+import { PathSystem }       from './systems/PathSystem.js';
+import { ParticleSystem }   from './systems/ParticleSystem.js';
+import { FlowerSystem }     from './systems/FlowerSystem.js';
+import { WindSystem }       from './systems/WindSystem.js';
+import { AudioSystem }      from './systems/AudioSystem.js';
+import { AssetManager }     from './systems/AssetManager.js';
+import { DebugSystem }      from './systems/DebugSystem.js';
+import { DawnGate }         from './scenes/DawnGate.js';
 
-// ── Renderer ─────────────────────────────────────────────────────────────────
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
 
-const canvas = document.getElementById('canvas');
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  alpha: false,
-  powerPreference: 'high-performance',
-});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping        = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-renderer.outputColorSpace   = THREE.SRGBColorSpace;
-renderer.shadowMap.enabled  = true;
-renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+const canvas   = document.getElementById('canvas');
+const renderer = new RendererSystem(canvas);
+const scene    = new SceneManager();
+const assets   = new AssetManager();
 
-// ── Systems ───────────────────────────────────────────────────────────────────
+// Systems with dependencies — order matters
+const scroll   = new ScrollSystem();
+const path     = new PathSystem(scene);
+const camera   = new CameraSystem(path, scroll);
+const lighting = new LightingSystem(scene);
+const env      = new EnvironmentSystem(scene, path);
+const particles = new ParticleSystem(scene);
+const flowers  = new FlowerSystem(scene);
+const wind     = new WindSystem();
+const audio    = new AudioSystem();
+const debug    = new DebugSystem();
 
-const sceneManager   = new SceneManager();
-const cameraSystem   = new CameraSystem();
-const lightingSystem = new LightingSystem(sceneManager);
-const envSystem      = new EnvironmentSystem(sceneManager);
-const scrollSystem   = new ScrollSystem();
-const flowerSystem   = new FlowerSystem(sceneManager);
-const particleSystem = new ParticleSystem(sceneManager);
-const audioSystem    = new AudioSystem();
+const dawnGate = new DawnGate(scene, scroll, path);
 
-// ── Scenes ───────────────────────────────────────────────────────────────────
+// ── Register systems (update order matters) ───────────────────────────────────
 
-const dawnGate = new DawnGate(sceneManager, scrollSystem);
+scene
+  .register(scroll)
+  .register(camera)
+  .register(lighting)
+  .register(env)
+  .register(particles)
+  .register(flowers)
+  .register(wind)
+  .register(audio)
+  .register(assets)
+  .register(debug)
+  .register(dawnGate)
+  .register(renderer);  // renderer registered so onResize() is called
 
-// ── Register with SceneManager ───────────────────────────────────────────────
-// CameraSystem registered first so drift happens before render.
+// ── Init all systems ──────────────────────────────────────────────────────────
 
-sceneManager.register(cameraSystem);
-sceneManager.register(lightingSystem);
-sceneManager.register(envSystem);
-sceneManager.register(scrollSystem);
-sceneManager.register(flowerSystem);
-sceneManager.register(particleSystem);
-sceneManager.register(audioSystem);
-sceneManager.register(dawnGate);
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-
-lightingSystem.init();
-envSystem.init();
-scrollSystem.init();
-flowerSystem.init();
-particleSystem.init();
-audioSystem.init();
+renderer.init();
+assets.init();
+scroll.init();
+path.init();                     // must run before camera.init()
+camera.init(renderer.get());
+lighting.init();
+env.init();
+particles.init();
+flowers.init();
+wind.init();
+audio.init();
+debug.init(camera.get(), renderer.get(), scene.get());
 dawnGate.init();
 
-// ── Resize ───────────────────────────────────────────────────────────────────
+// ── Opening sequence ─────────────────────────────────────────────────────────
+// Black overlay fades out; sun intensity ramps from 0.1 → 2.2.
+
+gsap.timeline({ delay: 0.4 })
+  .to('#intro', {
+    opacity:  0,
+    duration: 2.8,
+    ease:     'power2.inOut',
+  }, 0)
+  .to(lighting.sunLight, {
+    intensity: 2.2,
+    duration:  3.5,
+    ease:      'power1.inOut',
+  }, 0.6)
+  .call(() => {
+    const el = document.getElementById('intro');
+    if (el) el.remove();
+  });
+
+// ── Resize ────────────────────────────────────────────────────────────────────
 
 window.addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  sceneManager.resize();
+  scene.resize();
+  renderer.onResize();
+  camera.onResize();
 });
 
-// ── Loop ─────────────────────────────────────────────────────────────────────
+// ── Animation loop ────────────────────────────────────────────────────────────
 
 const clock = new THREE.Clock();
 
 function tick() {
   requestAnimationFrame(tick);
   const delta = clock.getDelta();
-  sceneManager.update(delta);
-  sceneManager.render(renderer, cameraSystem.get());
+  scene.update(delta);
+  scene.render(renderer.get(), camera.get());
 }
 
 tick();
