@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { buildGround }       from '../environment/buildGround.js';
-import { buildSky }          from '../environment/buildSky.js';
-import { buildArch }         from '../environment/buildArch.js';
-import { placeVegetation }   from '../environment/buildTrees.js';
+import { buildGround, buildSoilPatch } from '../environment/buildGround.js';
+import { buildSky }                    from '../environment/buildSky.js';
+import { buildArch }                   from '../environment/buildArch.js';
+import { placeVegetation }             from '../environment/buildTrees.js';
+import { buildPetals }                 from '../environment/buildPetals.js';
 
 const ARCH_Z = 14; // world-z position of the entrance arch
 
@@ -39,10 +40,36 @@ export class EnvironmentSystem {
 
     // Warm exponential fog — adds depth without swallowing the scene
     scene.fog = new THREE.FogExp2(0xd8ccb4, 0.009);
+
+    // Soil patches under the main flower bed zones
+    const curve = this.pathSystem.curve;
+    const soilBeds = [
+      { t: 0.05, side: -1 }, { t: 0.05, side:  1 },
+      { t: 0.18, side: -1 }, { t: 0.18, side:  1 },
+      { t: 0.31, side: -1 }, { t: 0.31, side:  1 },
+      { t: 0.48, side: -1 }, { t: 0.48, side:  1 },
+      { t: 0.62, side: -1 }, { t: 0.62, side:  1 },
+    ];
+    const _up  = new THREE.Vector3(0, 1, 0);
+    const _r   = new THREE.Vector3();
+    for (const { t, side } of soilBeds) {
+      const pt   = curve.getPoint(t);
+      const tang = curve.getTangent(t);
+      _r.crossVectors(tang, _up).normalize();
+      const sx = pt.x + _r.x * side * 3.0;
+      const sz = pt.z + _r.z * side * 3.0;
+      this.sceneManager.add(buildSoilPatch(sx, sz, 5.5, 8.5));
+    }
+
+    // Falling rose petals
+    this._petals = buildPetals(curve);
+    this.sceneManager.add(this._petals.group);
   }
 
-  /** @param {number} _delta */
-  update(_delta) {}
+  /** @param {number} delta */
+  update(delta) {
+    this._petals?.update(delta);
+  }
 
   dispose() {}
 }

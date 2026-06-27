@@ -29,9 +29,9 @@ const path     = new PathSystem(scene);
 const camera   = new CameraSystem(path, scroll);
 const lighting = new LightingSystem(scene);
 const env      = new EnvironmentSystem(scene, path);
-const particles = new ParticleSystem(scene);
-const flowers  = new FlowerSystem(scene);
 const wind     = new WindSystem();
+const particles = new ParticleSystem(scene);
+const flowers  = new FlowerSystem(scene, path, wind);
 const audio    = new AudioSystem();
 const debug    = new DebugSystem();
 
@@ -44,9 +44,9 @@ scene
   .register(camera)
   .register(lighting)
   .register(env)
+  .register(wind)
   .register(particles)
   .register(flowers)
-  .register(wind)
   .register(audio)
   .register(assets)
   .register(debug)
@@ -62,9 +62,9 @@ path.init();                     // must run before camera.init()
 camera.init(renderer.get());
 lighting.init();
 env.init();
+wind.init();
 particles.init();
 flowers.init();
-wind.init();
 audio.init();
 debug.init(camera.get(), renderer.get(), scene.get());
 dawnGate.init();
@@ -72,6 +72,7 @@ dawnGate.init();
 // ── Opening sequence ─────────────────────────────────────────────────────────
 // Black overlay fades out; sun intensity ramps from 0.1 → 2.2.
 
+gsap.ticker.lagSmoothing(0);   // prevents catch-up bursts after tab focus
 gsap.timeline({ delay: 0.4 })
   .to('#intro', {
     opacity:  0,
