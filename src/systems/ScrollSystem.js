@@ -1,7 +1,7 @@
 /**
  * Wraps Lenis smooth scroll and exposes a normalised 0→1 progress value.
- * Sprint 1: empty stub.
- * Sprint 2+: drives camera walk-through and GSAP timeline scrubbing.
+ * Sprint 2: stub — camera drift is automatic this sprint.
+ * Sprint 3+: drives camera walk-through and GSAP timeline scrubbing.
  */
 export class ScrollSystem {
   constructor() {
@@ -9,17 +9,10 @@ export class ScrollSystem {
     this.progress = 0;
   }
 
-  /** Instantiates Lenis and wires scroll listeners. */
-  init() {
-    // Populated in Sprint 2
-  }
+  init() {}
 
-  /** Must be called every animation frame. */
-  update() {
-    // Populated in Sprint 2
-  }
+  /** @param {number} _delta */
+  update(_delta) {}
 
-  dispose() {
-    // Populated in Sprint 2
-  }
+  dispose() {}
 }

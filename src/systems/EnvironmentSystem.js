@@ -1,9 +1,12 @@
 import * as THREE from 'three';
+import { buildGround } from '../utils/buildGround.js';
+import { buildPath } from '../utils/buildPath.js';
+import { buildArch } from '../utils/buildArch.js';
+import { buildSky } from '../utils/buildSky.js';
 
 /**
- * Builds the botanical garden environment — ground, hedges, trees, path, sky.
- * Sprint 1: empty stub.
- * Sprint 2+: procedural garden geometry loaded here.
+ * Assembles the full botanical garden environment for the Dawn Gate chapter.
+ * Owns: ground, curved path, entrance arch, sky dome, atmospheric fog.
  */
 export class EnvironmentSystem {
   /** @param {import('./SceneManager').SceneManager} sceneManager */
@@ -11,13 +14,16 @@ export class EnvironmentSystem {
     this.sceneManager = sceneManager;
   }
 
-  /** Builds and adds all environment geometry to the scene. */
   init() {
-    // Populated in Sprint 2
+    this.sceneManager.add(buildSky());
+    this.sceneManager.add(buildGround());
+    this.sceneManager.add(buildPath());
+    this.sceneManager.add(buildArch());
+
+    // Warm exponential fog — adds depth without swallowing the scene
+    this.sceneManager.get().fog = new THREE.FogExp2(0xe8dfc8, 0.012);
   }
 
-  /** @param {number} delta */
-  update(_delta) {
-    // Populated in Sprint 2
-  }
+  /** @param {number} _delta */
+  update(_delta) {}
 }

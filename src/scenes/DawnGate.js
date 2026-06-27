@@ -1,8 +1,10 @@
 /**
  * DawnGate — the opening chapter of the experience.
  * The visitor arrives at the garden entrance at dawn, gates slowly open.
- * Sprint 1: empty stub.
- * Sprint 2+: gate geometry, dawn sky gradient, opening animation on scroll.
+ *
+ * All environment elements for this chapter are owned by the shared systems
+ * (EnvironmentSystem, LightingSystem, ParticleSystem). DawnGate will
+ * coordinate chapter-specific animation and transitions in Sprint 3+.
  */
 export class DawnGate {
   /**
@@ -14,13 +16,8 @@ export class DawnGate {
     this.scrollSystem = scrollSystem;
   }
 
-  /** Builds the gate geometry and adds to scene. */
-  init() {
-    // Populated in Sprint 2
-  }
+  init() {}
 
-  /** @param {number} delta */
-  update(_delta) {
-    // Populated in Sprint 2
-  }
+  /** @param {number} _delta */
+  update(_delta) {}
 }
