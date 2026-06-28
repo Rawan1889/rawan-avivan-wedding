@@ -28,7 +28,7 @@ const scroll   = new ScrollSystem();
 const path     = new PathSystem(scene);
 const camera   = new CameraSystem(path, scroll);
 const lighting = new LightingSystem(scene);
-const env      = new EnvironmentSystem(scene, path);
+const env      = new EnvironmentSystem(scene, path, lighting);
 const wind     = new WindSystem();
 const particles = new ParticleSystem(scene);
 const flowers  = new FlowerSystem(scene, path, wind);
@@ -80,7 +80,7 @@ gsap.timeline({ delay: 0.4 })
     ease:     'power2.inOut',
   }, 0)
   .to(lighting.sunLight, {
-    intensity: 2.2,
+    intensity: 2.8,
     duration:  3.5,
     ease:      'power1.inOut',
   }, 0.6)

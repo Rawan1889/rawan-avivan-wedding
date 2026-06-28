@@ -1,44 +1,49 @@
 import * as THREE from 'three';
 
 /**
- * Sunrise lighting — 7:00 AM European garden.
- * HemisphereLight for sky/ground ambient gradient.
- * DirectionalLight as warm low-angle sun with long shadows.
- * Fill light for open-sky bounce on shadow side.
+ * Dusk / golden-hour lighting.
+ * Warm amber sun just above horizon, deep blue-green fill, warm ground bounce.
+ * Exposes sunLight + skyMaterial for GSAP intensity ramp.
  */
 export class LightingSystem {
   /** @param {import('./SceneManager').SceneManager} sceneManager */
   constructor(sceneManager) {
     this.sceneManager = sceneManager;
-    /** Exposed for GSAP intro animation (intensity ramp). */
     this.sunLight     = null;
+    /** @type {THREE.ShaderMaterial|null} set by EnvironmentSystem after sky is built */
+    this.skyMaterial  = null;
   }
 
   init() {
-    // Sky→ground ambient gradient — warm peach sky, muted ochre ground
-    const hemi = new THREE.HemisphereLight(0xfcd8a0, 0x8a7050, 0.85);
+    // Sky/ground ambient — warm amber top, deep blue-green ground bounce
+    const hemi = new THREE.HemisphereLight(0xf0a860, 0x2a4020, 0.80);
     this.sceneManager.add(hemi);
 
-    // Primary sun — low azimuth, long dramatic shadows
-    const sun = new THREE.DirectionalLight(0xffe0a0, 0.1); // starts dim — GSAP ramps up
-    sun.position.set(-20, 14, 28);
+    // Primary sun — very low angle, long shadows, warm amber
+    const sun = new THREE.DirectionalLight(0xff9040, 0.0); // GSAP ramps to 2.8
+    sun.position.set(-8, 5, 22);   // low left of camera for dramatic side-lighting
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near   = 1;
-    sun.shadow.camera.far    = 140;
-    sun.shadow.camera.left   = -50;
-    sun.shadow.camera.right  = 50;
-    sun.shadow.camera.top    = 50;
+    sun.shadow.camera.far    = 160;
+    sun.shadow.camera.left   = -60;
+    sun.shadow.camera.right  =  60;
+    sun.shadow.camera.top    =  50;
     sun.shadow.camera.bottom = -50;
-    sun.shadow.bias          = -0.0004;
-    sun.shadow.normalBias    = 0.02;
+    sun.shadow.bias          = -0.0003;
+    sun.shadow.normalBias    =  0.018;
     this.sceneManager.add(sun);
     this.sunLight = sun;
 
-    // Cool open-sky fill from the opposite side — no shadows
-    const fill = new THREE.DirectionalLight(0xb8c8d8, 0.28);
-    fill.position.set(14, 8, -22);
+    // Cool blue fill from opposite side — open-sky bounce in shadows
+    const fill = new THREE.DirectionalLight(0x8090c8, 0.18);
+    fill.position.set(12, 10, -18);
     this.sceneManager.add(fill);
+
+    // Warm rim from far right — catches olive tree silhouettes
+    const rim = new THREE.DirectionalLight(0xffb060, 0.35);
+    rim.position.set(18, 3, 10);
+    this.sceneManager.add(rim);
   }
 
   /** @param {number} _delta */

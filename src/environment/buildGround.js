@@ -23,7 +23,7 @@ export function buildGround() {
   geo.computeVertexNormals();
 
   const mat = new THREE.MeshStandardMaterial({
-    color:     0x3d5228,   // rich morning grass
+    color:     0x4a6630,   // rich garden grass, slightly lighter for dusk visibility
     roughness: 0.95,
     metalness: 0.0,
   });

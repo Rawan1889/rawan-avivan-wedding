@@ -1,11 +1,11 @@
 /**
- * Procedural sunrise sky — GLSL gradient in a dome.
- * Colors calibrated for 7:00 AM European garden light.
+ * Dusk / golden-hour sky — moody, warm, romantic.
+ * Calibrated to the reference images: deep amber horizon,
+ * blush-peach mid-sky, dusty mauve-blue zenith.
  */
 
 export const skyVert = /* glsl */`
   varying vec3 vDir;
-
   void main() {
     vDir = normalize(position);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -13,27 +13,30 @@ export const skyVert = /* glsl */`
 `;
 
 export const skyFrag = /* glsl */`
-  uniform vec3 uTop;       // zenith — soft muted blue
-  uniform vec3 uMid;       // mid-sky — warm cream
-  uniform vec3 uHorizon;   // horizon — golden peach
-  uniform vec3 uGlow;      // sun glow band
-  uniform float uGlowHeight; // vertical center of glow band
+  uniform vec3 uZenith;      // deep dusty blue-mauve at top
+  uniform vec3 uMid;         // blush peach in the middle
+  uniform vec3 uHorizon;     // warm amber at horizon
+  uniform vec3 uGlow;        // intense sun-glow band
+  uniform vec3 uUnderGlow;   // ground reflection warmth below horizon
+  uniform float uGlowHeight;
+  uniform float uSunIntensity; // 0→1 animated by GSAP
 
   varying vec3 vDir;
 
   void main() {
-    float h = vDir.y; // -1 → 1
+    float h = vDir.y; // -1 (nadir) → +1 (zenith)
 
-    // Sky tone: cream at horizon, soft blue at zenith
-    vec3 sky = mix(uMid, uTop, smoothstep(0.0, 0.6, h));
+    // Base sky gradient — horizon to zenith
+    vec3 sky = mix(uHorizon, uMid,  smoothstep(-0.05, 0.30, h));
+    sky       = mix(sky,     uZenith, smoothstep(0.15, 0.75, h));
 
-    // Warm horizon bleed near y=0
-    float horizonBlend = 1.0 - smoothstep(-0.08, 0.22, h);
-    sky = mix(sky, uHorizon, horizonBlend * 0.85);
+    // Warm glow band at sun position
+    float glow = pow(1.0 - clamp(abs(h - uGlowHeight) * 4.2, 0.0, 1.0), 2.8);
+    sky = mix(sky, uGlow, glow * 0.72 * uSunIntensity);
 
-    // Sun glow — warm band slightly above horizon
-    float glow = pow(1.0 - clamp(abs(h - uGlowHeight) * 5.5, 0.0, 1.0), 2.2);
-    sky = mix(sky, uGlow, glow * 0.55);
+    // Below horizon — deep warm ground shadow
+    float belowH = 1.0 - smoothstep(-0.25, 0.0, h);
+    sky = mix(sky, uUnderGlow, belowH * 0.65);
 
     gl_FragColor = vec4(sky, 1.0);
   }

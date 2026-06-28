@@ -4,64 +4,68 @@ import { buildSky }                    from '../environment/buildSky.js';
 import { buildArch }                   from '../environment/buildArch.js';
 import { placeVegetation }             from '../environment/buildTrees.js';
 import { buildPetals }                 from '../environment/buildPetals.js';
-
-const ARCH_Z = 14; // world-z position of the entrance arch
+import { buildLanterns }               from '../environment/buildLanterns.js';
+import { buildStoneWalls }             from '../environment/buildStoneWalls.js';
 
 /**
- * Assembles the full botanical garden — ground, sky, fog, arch, vegetation.
- * Receives PathSystem to correctly place elements along the curve.
+ * Assembles the full garden — ground, sky, fog, arch, vegetation,
+ * stone walls, lanterns, and falling petals.
  */
 export class EnvironmentSystem {
-  /**
-   * @param {import('./SceneManager').SceneManager} sceneManager
-   * @param {import('./PathSystem').PathSystem}      pathSystem
-   */
-  constructor(sceneManager, pathSystem) {
-    this.sceneManager = sceneManager;
-    this.pathSystem   = pathSystem;
+  constructor(sceneManager, pathSystem, lightingSystem) {
+    this.sceneManager   = sceneManager;
+    this.pathSystem     = pathSystem;
+    this.lightingSystem = lightingSystem;
+    this._petals        = null;
   }
 
   init() {
     const scene = this.sceneManager.get();
+    const curve = this.pathSystem.curve;
 
-    // Sky — rendered first, no depth write
-    this.sceneManager.add(buildSky());
+    // Sky — built first, exposes material for GSAP
+    const { mesh: skyMesh, material: skyMat } = buildSky();
+    this.sceneManager.add(skyMesh);
+    // Give lighting system access to sky material for sun-intensity sync
+    if (this.lightingSystem) this.lightingSystem.skyMaterial = skyMat;
+    this._skyMat = skyMat;
 
     // Terrain
     this.sceneManager.add(buildGround());
 
-    // Entrance arch — centred over path at z = ARCH_Z
+    // Stone raised walls — close to path, before flowers
+    buildStoneWalls(scene, curve);
+
+    // Entrance arch
     const arch = buildArch();
-    arch.position.set(0.05, 0, ARCH_Z);
+    arch.position.set(0.05, 0, 14);
     this.sceneManager.add(arch);
 
-    // Vegetation along the path curve
-    placeVegetation(scene, this.pathSystem.curve);
+    // Vegetation
+    placeVegetation(scene, curve);
 
-    // Warm exponential fog — adds depth without swallowing the scene
-    scene.fog = new THREE.FogExp2(0xd8ccb4, 0.009);
+    // Path lanterns
+    buildLanterns(scene, curve);
 
-    // Soil patches under the main flower bed zones
-    const curve = this.pathSystem.curve;
-    const soilBeds = [
-      { t: 0.05, side: -1 }, { t: 0.05, side:  1 },
-      { t: 0.18, side: -1 }, { t: 0.18, side:  1 },
-      { t: 0.31, side: -1 }, { t: 0.31, side:  1 },
-      { t: 0.48, side: -1 }, { t: 0.48, side:  1 },
-      { t: 0.62, side: -1 }, { t: 0.62, side:  1 },
-    ];
-    const _up  = new THREE.Vector3(0, 1, 0);
-    const _r   = new THREE.Vector3();
-    for (const { t, side } of soilBeds) {
+    // Soil patches under main bed zones
+    const _up = new THREE.Vector3(0, 1, 0);
+    const _r  = new THREE.Vector3();
+    const soilTs = [0.04, 0.12, 0.22, 0.34, 0.46, 0.58];
+    for (const t of soilTs) {
       const pt   = curve.getPoint(t);
       const tang = curve.getTangent(t);
       _r.crossVectors(tang, _up).normalize();
-      const sx = pt.x + _r.x * side * 3.0;
-      const sz = pt.z + _r.z * side * 3.0;
-      this.sceneManager.add(buildSoilPatch(sx, sz, 5.5, 8.5));
+      for (const side of [-1, 1]) {
+        const sx = pt.x + _r.x * side * 2.8;
+        const sz = pt.z + _r.z * side * 2.8;
+        this.sceneManager.add(buildSoilPatch(sx, sz, 6.0, 9.0));
+      }
     }
 
-    // Falling rose petals
+    // Warm dusk fog — linear, starts further out, warmer colour
+    scene.fog = new THREE.Fog(0xd49060, 35, 95);
+
+    // Falling petals
     this._petals = buildPetals(curve);
     this.sceneManager.add(this._petals.group);
   }
@@ -69,6 +73,11 @@ export class EnvironmentSystem {
   /** @param {number} delta */
   update(delta) {
     this._petals?.update(delta);
+    // Keep sky sun-intensity in sync with light ramp
+    if (this._skyMat && this.lightingSystem?.sunLight) {
+      this._skyMat.uniforms.uSunIntensity.value =
+        Math.min(1, this.lightingSystem.sunLight.intensity / 2.8);
+    }
   }
 
   dispose() {}
